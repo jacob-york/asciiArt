@@ -45,10 +45,9 @@ public class ImageHandler {
 		int sRHeight = curImage.getHeight();
 		int[][] shadingRaster = new int[sRHeight][sRWidth];
 		
-		int pixelColor = 0;
 		for (int y = 0; y < sRHeight; y++) {
 			for(int x = 0; x < sRWidth; x++) {
-				pixelColor = curImage.getRGB(x, y);
+				int pixelColor = curImage.getRGB(x, y);
 				shadingRaster[y][x] = desaturate(pixelColor);
 			}
 		}
