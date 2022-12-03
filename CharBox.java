@@ -1,4 +1,4 @@
-package asciiArtSrs;
+package asciiArt110;
 
 // written by Jacob York
 
@@ -8,7 +8,7 @@ public class CharBox {
 	private int yPos;  // 
 	private int width;
 	private int height;
-	private int area;
+	private int area;  // I'm intentionally breaking the "Resource acquisition is Initialization" rule for the sake of speed.
 	
 	public CharBox(int width) {
 		xPos = 0;
@@ -34,7 +34,7 @@ public class CharBox {
 	public int getArea() {
 		return area;
 	}
-	public int getGrayVal (int[][] shadingRaster) { // 0-255 avrg that represents how dark the region outlined by Rectangle is
+	public int getGrayVal(int[][] shadingRaster) { // 0-255 avrg that represents how dark the region outlined by Rectangle is
 		int sumOfPixels = 0;
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
@@ -45,9 +45,11 @@ public class CharBox {
 	}
 	
 	// setters
-	public void setPos(int x, int y) {
-		xPos = x;
-		yPos = y;
+	public void setX(int newX) {
+		xPos = newX;
+	}
+	public void setY(int newY) {
+		yPos = newY;
 	}
 	
 	public String toString()
@@ -66,12 +68,12 @@ public class CharBox {
 		return returnVal;
 	}
 
-	public char loadChar(String palette, int[][] shadingRaster) { 
+	public char pickChar(int[][] shadingRaster, String palette) {
 		// checks
-		if (!(palette.length() == 16))
-			throw new ArrayIndexOutOfBoundsException("Palette must be 16 elements long exactly.");
+		if (256 % palette.length() != 0)
+			throw new ArrayIndexOutOfBoundsException("Palette must be divisible by 256.");
 		
-		int index = (int) Math.floor(getGrayVal(shadingRaster) / 16);
+		int index = (int) Math.floor(getGrayVal(shadingRaster) / (256 / palette.length()));
 		return palette.charAt(index);
 	}
 	

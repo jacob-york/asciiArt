@@ -1,12 +1,16 @@
-package asciiArtSrs;
+package asciiArt110;
+
+import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.stream.Stream;
 
 // written by Jacob York
 
-public class AsciiImage {
+public class AsciiImage implements AsciiArt {
 	
+	private ImageLoader imgLoader;
 	private CharBox charBox;
-	
-	public static final String DEFAULT_PALETTE = "@N#bhyo+s/=-:.` ";
 	
 	private int domain;
 	private int range;
@@ -14,41 +18,173 @@ public class AsciiImage {
 	private String basePalette;
 	private String activePalette;
 	
-	private boolean isInverted;
-	
 	private int[][] shadingRaster;
 	
 	// constructor(s)
-	public AsciiImage(int[][] shadingRaster) {
-		this.shadingRaster = shadingRaster;
+	public AsciiImage(String path) {
+		imgLoader = new ImageLoader();
+		imgLoader.loadFromFile(path);
 		charBox = new CharBox(1);
-		isInverted = false;
 		basePalette = DEFAULT_PALETTE;
 		activePalette = DEFAULT_PALETTE;
 		
-		updateDomainAndRange();
-	}
-	public AsciiImage(int[][] shadingRaster, int charWidth) {
-		this.shadingRaster = shadingRaster;
-		charBox = new CharBox(charWidth);
-		isInverted = false;
-		basePalette = DEFAULT_PALETTE;
-		activePalette = DEFAULT_PALETTE;
+		this.shadingRaster = imgLoader.getShadingRaster();
 		
 		updateDomainAndRange();
 	}
-	public AsciiImage(int[][] shadingRaster, int charWidth, boolean invertedShading) {
-		this.shadingRaster = shadingRaster;
+	public AsciiImage(String path, int charWidth) {
+		imgLoader = new ImageLoader();
+		imgLoader.loadFromFile(path);
 		charBox = new CharBox(charWidth);
-		isInverted = invertedShading;
 		basePalette = DEFAULT_PALETTE;
-		if (isInverted)
-			activePalette = reverseString(basePalette);
+		activePalette = DEFAULT_PALETTE;
+		
+		this.shadingRaster = imgLoader.getShadingRaster();
+		
+		updateDomainAndRange();
+	}
+	public AsciiImage(String path, int charWidth, boolean invertedShading) {
+		imgLoader = new ImageLoader();
+		imgLoader.loadFromFile(path);
+		charBox = new CharBox(charWidth);
+		basePalette = DEFAULT_PALETTE;
+		if (invertedShading)
+			activePalette = AsciiArt.reverseString(basePalette);
 		else activePalette = basePalette;	
+		
+		this.shadingRaster = imgLoader.getShadingRaster();
+		
+		updateDomainAndRange();
+	}
+	public AsciiImage(String path, int charWidth, boolean invertedShading, String palette) {
+		imgLoader = new ImageLoader();
+		imgLoader.loadFromFile(path);
+		charBox = new CharBox(charWidth);
+		basePalette = palette;
+		if (invertedShading)
+			activePalette = AsciiArt.reverseString(basePalette);
+		else activePalette = basePalette;	
+		
+		this.shadingRaster = imgLoader.getShadingRaster();
+		
+		updateDomainAndRange();
+	}
+	public AsciiImage(BufferedImage image) {
+		imgLoader = new ImageLoader(image);
+		charBox = new CharBox(1);
+		basePalette = DEFAULT_PALETTE;
+		activePalette = DEFAULT_PALETTE;
+		
+		this.shadingRaster = imgLoader.getShadingRaster();
+		
+		updateDomainAndRange();
+	}
+	public AsciiImage(BufferedImage image, int charWidth) {
+		imgLoader = new ImageLoader(image);
+		charBox = new CharBox(charWidth);
+		basePalette = DEFAULT_PALETTE;
+		activePalette = DEFAULT_PALETTE;
+		
+		this.shadingRaster = imgLoader.getShadingRaster();
+		
+		updateDomainAndRange();
+	}
+	public AsciiImage(BufferedImage image, int charWidth, boolean invertedShading) {
+		imgLoader = new ImageLoader(image);
+		charBox = new CharBox(charWidth);
+		basePalette = DEFAULT_PALETTE;
+		if (invertedShading)
+			activePalette = AsciiArt.reverseString(basePalette);
+		else activePalette = basePalette;	
+		
+		this.shadingRaster = imgLoader.getShadingRaster();
+		
+		updateDomainAndRange();
+	}
+	public AsciiImage(BufferedImage image, int charWidth, boolean invertedShading, String palette) {
+		imgLoader = new ImageLoader(image);
+		charBox = new CharBox(charWidth);
+		basePalette = palette;
+		if (invertedShading)
+			activePalette = AsciiArt.reverseString(basePalette);
+		else activePalette = basePalette;	
+		
+		this.shadingRaster = imgLoader.getShadingRaster();
 		
 		updateDomainAndRange();
 	}
 	
+	// getters
+	@Override
+	public int getWidth() {
+		return domain / charBox.getWidth();
+	}
+	@Override
+	public int getHeight() {
+		return range / charBox.getHeight();
+	}
+	@Override
+	public int getArea() {
+		return getWidth() * getHeight();
+	}
+	@Override
+	public int getCharWidth() {
+		return charBox.getWidth();
+	}
+	@Override
+	public String getPalette() {
+		return basePalette;
+	}
+	public BufferedImage getImage() {
+		return imgLoader.getImage();
+	}
+	public int[][] getShadingRaster() {
+		return shadingRaster;
+	}
+	public String getName() {
+		String imgName = imgLoader.getName();
+		String artName = 
+				imgName.contains(".") ? imgName : imgName.substring(0, imgName.lastIndexOf('.'));
+		artName += "-charWidth-" + charBox.getWidth();
+		artName += shadingIsInverted() ? "-negative.txt" : ".txt";
+		return artName;
+	}
+	
+	// setters
+	@Override
+	public int setCharWidth(int newCharWidth) {
+		if (newCharWidth <= 0)
+			return 1;  // error code 1: charWidth is less than or equal to 0
+		
+		if (newCharWidth > getImage().getWidth() || (newCharWidth * 2) > getImage().getHeight())
+			return 2;  // error code 2: charWidth is too large for this shadingRaster
+		
+		charBox = new CharBox(newCharWidth);
+		updateDomainAndRange();
+		return 0;
+	}
+	@Override
+	public int setPalette(String newPalette) {
+		
+		if (256 % newPalette.length() != 0)
+			return 1;
+		basePalette = newPalette;
+		if (shadingIsInverted())
+			activePalette = AsciiArt.reverseString(basePalette);
+		else activePalette = basePalette;
+		
+		return 0;
+	}
+	public int setImage(BufferedImage image) {
+		
+		if (image.getWidth() < charBox.getWidth() || image.getHeight() < charBox.getHeight())
+			return 1;
+		
+		imgLoader.setImage(image);
+		shadingRaster = imgLoader.getShadingRaster();
+		return 0;
+	}
+
 	private void updateDomainAndRange() {
 		int SRWidth = shadingRaster[0].length;
 		int SRHeight = shadingRaster.length;
@@ -57,72 +193,36 @@ public class AsciiImage {
 		range = SRHeight - (SRHeight % charBox.getHeight());
 	}
 	
-	// getters
-	public int getWidth() {
-		return domain / charBox.getWidth();
-	}
-	public int getHeight() {
-		return range / charBox.getHeight();
-	}
-	public int getArea() {
-		return getWidth() * getHeight();
-	}
-	public int getCharWidth() {
-		return charBox.getWidth();
-	}
-	public String getPalette() {
-		return basePalette;
-	}
-	public int[][] getShadingRaster() {
-		return shadingRaster.clone();
+	@Override
+	public void setInvertedShading(boolean invertedShading) {
+		if (invertedShading)
+			activePalette = AsciiArt.reverseString(basePalette);
+		else activePalette = basePalette;
 	}
 	
-	// setters
-	public int setCharWidth(int newCharWidth) {
-		if (newCharWidth <= 0)
-			return 1;  // error code 1: charWidth is less than or equal to 0
-		
-		if (newCharWidth > shadingRaster[0].length || (newCharWidth * 2) > shadingRaster.length)
-			return 2;  // error code 2: charWidth is too large for this shadingRaster
-		
-		charBox = new CharBox(newCharWidth);
-		
-		updateDomainAndRange();
-		return 0;
+	@Override
+	public boolean usesDefaultPalette() {
+		if (basePalette.equals(DEFAULT_PALETTE))
+			return true;
+		else return false;
 	}
-	public int setPalette(String newPalette) {
-		if (newPalette.length() != 16)
-			return 1;
-		
-		basePalette = newPalette;
-		if (isInverted)
-			activePalette = reverseString(basePalette);
-		else activePalette = basePalette;
-		
-		return 0;
-	}
-	public int setShadingRaster(int[][] newShadingRaster) {
-		
-		if (newShadingRaster[0].length < charBox.getWidth() || newShadingRaster.length < charBox.getHeight())
-			return 1;
-		
-		shadingRaster = newShadingRaster;
-		
-		updateDomainAndRange();
-		return 0;
+	
+	@Override
+	public boolean shadingIsInverted() {
+		return activePalette.equals(AsciiArt.reverseString(basePalette));
 	}
 	
 	public String toString() {
+
 		String[] stringArray = toStringArray();
-		
 		String returnVal = "";
-		for (int i = 0; i < stringArray.length; i++) {
-			returnVal += stringArray[i];
+		for (String line : stringArray) {
+			returnVal += line;
 			returnVal += "\n";
 		}
-		
 		return returnVal;
 	}
+	
 	public String[] toStringArray() {
 		String[] stringArray = new String[getHeight()];
 		
@@ -134,29 +234,31 @@ public class AsciiImage {
 
 		for (y = 0; y < range; y += charBox.getHeight()) {
 			stringArray[SAy] = "";
+			charBox.setY(y);
 			for (x = 0; x < domain; x += charBox.getWidth()) {
-				charBox.setPos(x, y);
-				stringArray[SAy] += charBox.loadChar(activePalette, shadingRaster);
+				charBox.setX(x);
+				stringArray[SAy] += charBox.pickChar(shadingRaster, activePalette);
 			}
 			SAy++;
 		}
 		
 		return stringArray;
 	}
+	
 	public char[][] toCharRaster() {
 		char[][] charRaster = new char[getHeight()][getWidth()];
 		
 		// shadingRaster position
 		int SRy;
-		int SRx;
-		// charRaster position
+		int SRx;		// charRaster position
 		int CRy = 0;
 		int CRx = 0;
 		
 		for (SRy = 0; SRy < range; SRy += charBox.getHeight()) {
+			charBox.setY(SRy);
 			for (SRx = 0; SRx < domain; SRx += charBox.getWidth()) {
-				charBox.setPos(SRx, SRy);
-				charRaster[CRy][CRx] = charBox.loadChar(activePalette, shadingRaster);
+				charBox.setX(SRx);
+				charRaster[CRy][CRx] = charBox.pickChar(shadingRaster, activePalette);
 				CRx++;
 			}
 			CRx = 0;
@@ -166,28 +268,28 @@ public class AsciiImage {
 		return charRaster;
 	}
 	
-	public void invertedShading(boolean shadingStatus) {
-		isInverted = shadingStatus;
-		if (isInverted)
-			activePalette = reverseString(basePalette);
-		else activePalette = basePalette;
-	}
-	
-	public boolean usesDefaultPalette() {
-		if (basePalette.equals(DEFAULT_PALETTE))
-			return true;
-		else return false;
-	}
-	public boolean isInverted() {
-		return isInverted;
-	}
-	
-	private static String reverseString(String orig) {
-		String reversed = "";
-		for (int i = (orig.length() - 1); i > 0; i--) {
-			reversed += orig.charAt(i);
+	/*
+	public static String[] parallelGeneration(BufferedImage source, int charWidth) {
+		
+		int[][] shadingRaster = new ImageLoader(source).getShadingRaster();
+		
+		ArrayList<CharBox> charBoxes;
+		
+		int SRWidth = shadingRaster[0].length;
+		int SRHeight = shadingRaster.length;
+		
+		int domain = SRWidth - (charWidth);
+		int range = SRHeight - (2 * charWidth);
+		
+		for () {
+			CharBox curBox = new CharBox(charWidth);
+			curBox.setX(?);
+			curBox.setY(?);
+			charBoxes.add(curBox);
 		}
-		return reversed;
-	}
-	
+		
+		Stream stream = Arrays.stream(shadingRaster)
+				.map(w -> Arrays.stream(w).)
+				;
+	}*/
 }
