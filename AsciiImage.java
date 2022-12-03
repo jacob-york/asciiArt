@@ -269,7 +269,7 @@ public class AsciiImage implements AsciiArt {
 	}
 	
 	/*
-	public static String[] parallelGeneration(BufferedImage source, int charWidth) {
+	public static String[] parallelGeneration(BufferedImage source, int charWidth, boolean invertedShading, String palette) {
 		
 		int[][] shadingRaster = new ImageLoader(source).getShadingRaster();
 		
